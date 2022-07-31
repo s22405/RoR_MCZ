@@ -1,6 +1,6 @@
 class InstrumentsController < ApplicationController
   def index
-    params.permit(:ticker, :companyname) #TODO companyname worked even without permitting it?
+    params=params.permit(:ticker, :companyname)
 
     instruments = Instrument.all
 

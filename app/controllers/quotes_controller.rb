@@ -1,6 +1,6 @@
 class QuotesController < ApplicationController
   def index
-    params.permit(:ticker, :companyname) #TODO companyname worked even without permitting it?
+    params=params.permit(:ticker, :companyname)
 
     quotes = Quote.all
 
