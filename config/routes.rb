@@ -3,4 +3,7 @@ Rails.application.routes.draw do
 
   # Defines the root path route ("/")
   resources :instruments
+  resources :quotes do
+    resources :instruments
+  end
 end
