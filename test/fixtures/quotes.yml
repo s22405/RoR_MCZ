@@ -1,0 +1,11 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  Timestamp: 2022-07-30 15:21:12
+  Price: 9.99
+  Instrument: one
+
+two:
+  Timestamp: 2022-07-30 15:21:12
+  Price: 9.99
+  Instrument: two
