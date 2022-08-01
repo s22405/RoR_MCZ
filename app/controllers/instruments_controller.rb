@@ -1,7 +1,7 @@
 class InstrumentsController < ApplicationController
   def index
-    # params= #TODO errors with this
-      params.permit(:ticker, :companyname)
+    #params =
+    params.permit(:ticker, :companyname)
 
     instruments = Instrument.all
 
@@ -30,12 +30,8 @@ class InstrumentsController < ApplicationController
   end
 
   private
-  def instrument_params #TODO also check if this works
+  def instrument_params
+    #TODO Transaction
     _params = params.require(:instrument).permit(:Ticker, :CompanyName, :TimeCreated)
-    if Instrument.find_by_Ticker(_params[:Ticker]).present?
-      0 #TODO replace this with something better
-    else
-      _params
-    end
   end
 end
