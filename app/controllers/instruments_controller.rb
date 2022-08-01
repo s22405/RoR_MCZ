@@ -1,6 +1,7 @@
 class InstrumentsController < ApplicationController
   def index
-    params=params.permit(:ticker, :companyname)
+    # params= #TODO errors with this
+      params.permit(:ticker, :companyname)
 
     instruments = Instrument.all
 
@@ -18,22 +19,23 @@ class InstrumentsController < ApplicationController
     render json: Instrument.find(params[:id])
   end
 
-  # def new
-  #   Instrument.new
-  # end
+  def create
+    instrument = Instrument.new(instrument_params)
 
-  # def create
-  #   Instrument.new(instrument_params)
-  #
-  #   if @article.save
-  #     redirect_to @article
-  #   else
-  #     render :new, status: :unprocessable_entity
-  #   end
-  # end
+    if instrument.save
+      render json: instrument
+    else
+      render status: :unprocessable_entity
+    end
+  end
 
   private
-  def instrument_params
-    params.require(:instrument).permit(:Ticker, :CompanyName, :TimeCreated)
+  def instrument_params #TODO also check if this works
+    _params = params.require(:instrument).permit(:Ticker, :CompanyName, :TimeCreated)
+    if Instrument.find_by_Ticker(_params[:Ticker]).present?
+      0 #TODO replace this with something better
+    else
+      _params
+    end
   end
 end
