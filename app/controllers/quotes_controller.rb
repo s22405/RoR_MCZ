@@ -1,7 +1,9 @@
 class QuotesController < ApplicationController
+  rescue_from ActiveRecord::RecordNotFound do |exception|
+    render json: { error: exception }, status: 404
+  end
+  #TODO error handling
   def index
-    # params= #TODO errors with this
-      params.permit(:ticker, :companyname)
 
     quotes = Quote.all
 
@@ -24,19 +26,16 @@ class QuotesController < ApplicationController
     quote = build_quote
 
     if quote.save
-      render json: quote
+      render json: quote_presenter(quote)
     else
-      render status: :unprocessable_entity
+      render json: {error: "Unprocessable entity"}, status: 422
     end
   end
 
   private
   def build_quote
-    #TODO Transaction
-    instrument = Instrument.find_by_Ticker(params[:Ticker])
-    if instrument.present?
-      instrument.Quotes.build(quote_params)
-    end
+    instrument = Instrument.find_by_Ticker!(params[:Ticker])
+    instrument.Quotes.build(quote_params)
   end
 
   private

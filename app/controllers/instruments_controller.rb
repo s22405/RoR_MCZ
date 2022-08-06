@@ -1,7 +1,10 @@
 class InstrumentsController < ApplicationController
+  rescue_from ActiveRecord::RecordNotFound do |exception|
+    render json: { error: exception }, status: 404
+  end
+
+  #TODO error handling
   def index
-    #params =
-    params.permit(:ticker, :companyname)
 
     instruments = Instrument.all
 
@@ -21,17 +24,15 @@ class InstrumentsController < ApplicationController
 
   def create
     instrument = Instrument.new(instrument_params)
-
     if instrument.save
       render json: instrument
     else
-      render status: :unprocessable_entity
+      render json: {error: "Unprocessable entity"}, status: 422
     end
   end
 
   private
   def instrument_params
-    #TODO Transaction
     _params = params.require(:instrument).permit(:Ticker, :CompanyName, :TimeCreated)
   end
 end
