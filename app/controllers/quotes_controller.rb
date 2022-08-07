@@ -13,6 +13,12 @@ class QuotesController < ApplicationController
     if params[:companyname]
       quotes = quotes.where(Instrument: Instrument.where(CompanyName: params[:companyname]))
     end
+    if params[:offset]
+      quotes = quotes.offset(params[:offset])
+    end
+    if params[:limit]
+      quotes = quotes.limit(params[:limit])
+    end
 
     render json: quote_presenter(quotes)
   end
