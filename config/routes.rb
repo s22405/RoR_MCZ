@@ -6,4 +6,5 @@ Rails.application.routes.draw do
   resources :quotes do
     resources :instruments
   end
+  match '*unmatched', to: 'application#route_not_found', via: :all
 end

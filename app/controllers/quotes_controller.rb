@@ -1,6 +1,9 @@
 class QuotesController < ApplicationController
+  rescue_from ActiveRecord::RecordNotFound do |exception|
+    render json: { error: exception }, status: 404
+  end
+  #TODO error handling
   def index
-    params=params.permit(:ticker, :companyname)
 
     quotes = Quote.all
 
@@ -9,6 +12,12 @@ class QuotesController < ApplicationController
     end
     if params[:companyname]
       quotes = quotes.where(Instrument: Instrument.where(CompanyName: params[:companyname]))
+    end
+    if params[:offset]
+      quotes = quotes.offset(params[:offset])
+    end
+    if params[:limit]
+      quotes = quotes.limit(params[:limit])
     end
 
     render json: quote_presenter(quotes)
@@ -19,7 +28,28 @@ class QuotesController < ApplicationController
     render json: quote_presenter(quote)
   end
 
+  def create
+    quote = build_quote
+
+    if quote.save
+      render json: quote_presenter(quote)
+    else
+      render json: {error: "Unprocessable entity"}, status: 422
+    end
+  end
+
   private
+  def build_quote
+    instrument = Instrument.find_by_Ticker!(params[:Ticker])
+    instrument.Quotes.build(quote_params)
+  end
+
+  private
+
+  def quote_params
+    params.permit(:Timestamp, :Price)
+  end
+
   def quote_presenter(quote)
     quote.as_json(only: [:id, :Timestamp, :Price, :created_at, :updated_at ],include: :Instrument)
   end

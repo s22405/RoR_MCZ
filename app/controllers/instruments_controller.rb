@@ -1,6 +1,18 @@
 class InstrumentsController < ApplicationController
+  rescue_from ActiveRecord::RecordNotFound do |exception|
+    render json: { error: exception }, status: 404
+  end
+  rescue_from SQLite3::ConstraintException do |exception|
+    render json: { error: "There's already an instrument with the given ticker" }, status: 422
+    # TODO double check the status code
+    # potential candidates
+    # 400 - bad request
+    # 409 - conflict
+    # 417 - expectation failed
+  end
+
+  #TODO error handling
   def index
-    params=params.permit(:ticker, :companyname)
 
     instruments = Instrument.all
 
@@ -10,6 +22,12 @@ class InstrumentsController < ApplicationController
     if params[:companyname]
       instruments = instruments.where(CompanyName: params[:companyname])
     end
+    if params[:offset]
+      instruments = instruments.offset(params[:offset])
+    end
+    if params[:limit]
+      instruments = instruments.limit(params[:limit])
+    end
 
     render json: instruments
   end
@@ -18,22 +36,17 @@ class InstrumentsController < ApplicationController
     render json: Instrument.find(params[:id])
   end
 
-  # def new
-  #   Instrument.new
-  # end
-
-  # def create
-  #   Instrument.new(instrument_params)
-  #
-  #   if @article.save
-  #     redirect_to @article
-  #   else
-  #     render :new, status: :unprocessable_entity
-  #   end
-  # end
+  def create
+    instrument = Instrument.new(instrument_params)
+    if instrument.save
+      render json: instrument
+    else
+      render json: {error: "Unprocessable entity"}, status: 422
+    end
+  end
 
   private
   def instrument_params
-    params.require(:instrument).permit(:Ticker, :CompanyName, :TimeCreated)
+    _params = params.require(:instrument).permit(:Ticker, :CompanyName, :TimeCreated)
   end
 end

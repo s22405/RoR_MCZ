@@ -8,5 +8,17 @@
       <jdbc-url>jdbc:sqlite:C:\Users\macie\Desktop\Files\Work\Ruby\RoR\db\development.sqlite3</jdbc-url>
       <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
+    <data-source source="LOCAL" name="production" uuid="31e63047-b599-457a-be32-094687107d40">
+      <driver-ref>sqlite.xerial</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>org.sqlite.JDBC</jdbc-driver>
+      <jdbc-url>jdbc:sqlite:C:\Users\macie\Desktop\Files\Work\Ruby\RoR\db\production.sqlite3</jdbc-url>
+      <working-dir>$ProjectFileDir$</working-dir>
+      <libraries>
+        <library>
+          <url>file://$APPLICATION_CONFIG_DIR$/jdbc-drivers/Xerial SQLiteJDBC/3.38.0/sqlite-jdbc-3.38.0.jar</url>
+        </library>
+      </libraries>
+    </data-source>
   </component>
 </project>

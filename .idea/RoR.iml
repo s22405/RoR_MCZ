@@ -45,8 +45,11 @@
     <orderEntry type="library" scope="PROVIDED" name="concurrent-ruby (v1.1.10, ruby-3.1.2-p20) [gem]" level="application" />
     <orderEntry type="library" scope="PROVIDED" name="crass (v1.0.6, ruby-3.1.2-p20) [gem]" level="application" />
     <orderEntry type="library" scope="PROVIDED" name="debug (v1.6.1, ruby-3.1.2-p20) [gem]" level="application" />
+    <orderEntry type="library" scope="PROVIDED" name="diff-lcs (v1.5.0, ruby-3.1.2-p20) [gem]" level="application" />
     <orderEntry type="library" scope="PROVIDED" name="digest (v3.1.0, ruby-3.1.2-p20) [gem]" level="application" />
     <orderEntry type="library" scope="PROVIDED" name="erubi (v1.10.0, ruby-3.1.2-p20) [gem]" level="application" />
+    <orderEntry type="library" scope="PROVIDED" name="factory_bot (v6.2.1, ruby-3.1.2-p20) [gem]" level="application" />
+    <orderEntry type="library" scope="PROVIDED" name="factory_bot_rails (v6.2.0, ruby-3.1.2-p20) [gem]" level="application" />
     <orderEntry type="library" scope="PROVIDED" name="globalid (v1.0.0, ruby-3.1.2-p20) [gem]" level="application" />
     <orderEntry type="library" scope="PROVIDED" name="i18n (v1.12.0, ruby-3.1.2-p20) [gem]" level="application" />
     <orderEntry type="library" scope="PROVIDED" name="io-console (v0.5.11, ruby-3.1.2-p20) [gem]" level="application" />
@@ -74,6 +77,11 @@
     <orderEntry type="library" scope="PROVIDED" name="railties (v7.0.3.1, ruby-3.1.2-p20) [gem]" level="application" />
     <orderEntry type="library" scope="PROVIDED" name="rake (v13.0.6, ruby-3.1.2-p20) [gem]" level="application" />
     <orderEntry type="library" scope="PROVIDED" name="reline (v0.3.1, ruby-3.1.2-p20) [gem]" level="application" />
+    <orderEntry type="library" scope="PROVIDED" name="rspec (v3.11.0, ruby-3.1.2-p20) [gem]" level="application" />
+    <orderEntry type="library" scope="PROVIDED" name="rspec-core (v3.11.0, ruby-3.1.2-p20) [gem]" level="application" />
+    <orderEntry type="library" scope="PROVIDED" name="rspec-expectations (v3.11.0, ruby-3.1.2-p20) [gem]" level="application" />
+    <orderEntry type="library" scope="PROVIDED" name="rspec-mocks (v3.11.1, ruby-3.1.2-p20) [gem]" level="application" />
+    <orderEntry type="library" scope="PROVIDED" name="rspec-support (v3.11.0, ruby-3.1.2-p20) [gem]" level="application" />
     <orderEntry type="library" scope="PROVIDED" name="sqlite3 (v1.4.4, ruby-3.1.2-p20) [gem]" level="application" />
     <orderEntry type="library" scope="PROVIDED" name="strscan (v3.0.3, ruby-3.1.2-p20) [gem]" level="application" />
     <orderEntry type="library" scope="PROVIDED" name="thor (v1.2.1, ruby-3.1.2-p20) [gem]" level="application" />
@@ -99,6 +107,7 @@
         <option value="benchmark" />
         <option value="channel" />
         <option value="controller" />
+        <option value="factory_bot:model" />
         <option value="generator" />
         <option value="integration_test" />
         <option value="job" />
@@ -136,6 +145,7 @@
         <option value="benchmark" />
         <option value="channel" />
         <option value="controller" />
+        <option value="factory_bot:model" />
         <option value="generator" />
         <option value="integration_test" />
         <option value="job" />
