@@ -40,7 +40,16 @@ class QuotesController < ApplicationController
 
   private
   def build_quote
-    instrument = Instrument.find_by_Ticker!(params[:Ticker])
+    ticker = params[:Ticker]
+    instrument = Instrument.find_by_Ticker(ticker)
+    if instrument.nil?
+      instrument = Instrument.new(Ticker: ticker)
+      if instrument.save
+        instrument = Instrument.find_by_Ticker(ticker)
+      else
+        render json: {error: "Unprocessable entity"}, status: 422
+      end
+    end
     instrument.Quotes.build(quote_params)
   end
 

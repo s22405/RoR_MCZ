@@ -113,6 +113,54 @@ RSpec.describe "/instruments", type: :request do
     end
   end
 
+  describe "PUT index/id" do
+    it "returns a 404 NotFound error" do
+      instrument1 = FactoryBot.build(:instrument, Ticker: "abc")
+      instrument1.save
+
+      put '/instruments/25', params:
+        { instrument: {
+          Ticker: "abc",
+          CompanyName: "Testing",
+          TimeCreated: "2022-07-28 18:18:29.294"
+        } }
+
+      expect(response.status).to eq(404)
+    end
+
+    it "updates the instrument of id 1" do
+      instrument1 = FactoryBot.build(:instrument, Ticker: "abc")
+      instrument1.save
+      instrument2 = FactoryBot.build(:instrument, Ticker: "ghi")
+      instrument2.save
+
+      put '/instruments/1', params:
+        { instrument: {
+          Ticker: "def",
+          CompanyName: "Testing",
+          TimeCreated: "2022-07-28 18:18:29.294"
+        } }
+
+      expect(Instrument.count).to eq(2)
+      expect(Instrument.first.Ticker).to eq("def")
+      expect(Instrument.second.Ticker).to eq("ghi")
+    end
+
+    it "returns a 422 UnprocessableEntity error" do
+      instrument1 = FactoryBot.build(:instrument, Ticker: "abc")
+      instrument1.save
+
+      put '/instruments/1', params:
+        { instrument: {
+          Ticker: "sdfdsfsdfsdf",
+          CompanyName: "Testing",
+          TimeCreated: "2022-07-28 18:18:29.294"
+        } }
+
+      expect(response.status).to eq(422)
+    end
+  end
+
   describe "create" do
     it "posts an instrument" do
       post '/instruments', params:
@@ -167,8 +215,8 @@ RSpec.describe "/instruments", type: :request do
     it "returns Error 422 due to missing parameters" do
       post '/instruments', params:
         { instrument: {
-          Ticker: "abc",
           CompanyName: "Testing",
+          TimeCreated: "2022-07-28 18:18:29.294"
         } }
       expect(response.status).to eq(422)
     end

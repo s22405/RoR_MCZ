@@ -157,7 +157,7 @@ RSpec.describe "/quotes", type: :request do
       expect(response.status).to eq(422)
     end
 
-    it "returns Error 404 due to non-existing ticker" do
+    it "posts a quote and creates a new instrument along side it" do
       post '/quotes', params:
         {
           Ticker: "dogma",
@@ -165,7 +165,8 @@ RSpec.describe "/quotes", type: :request do
           Timestamp: "2022-07-28 18:18:29.294"
         }
 
-      expect(response.status).to eq(404)
+      expect(Quote.count).to eq(1)
+      expect(Quote.first.Price).to eq(100.2)
     end
 
     it "returns Error 422 due to missing parameters" do

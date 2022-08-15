@@ -11,7 +11,6 @@ class InstrumentsController < ApplicationController
     # 417 - expectation failed
   end
 
-  #TODO error handling
   def index
 
     instruments = Instrument.all
@@ -39,6 +38,16 @@ class InstrumentsController < ApplicationController
   def create
     instrument = Instrument.new(instrument_params)
     if instrument.save
+      render json: instrument
+    else
+      render json: {error: "Unprocessable entity"}, status: 422
+    end
+  end
+
+  def update
+    instrument = Instrument.find(params[:id])
+
+    if instrument.update(instrument_params)
       render json: instrument
     else
       render json: {error: "Unprocessable entity"}, status: 422
