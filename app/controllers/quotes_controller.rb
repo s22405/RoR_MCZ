@@ -40,12 +40,20 @@ class QuotesController < ApplicationController
 
   private
   def build_quote
-    instrument = Instrument.find_by_Ticker!(params[:Ticker])
-    instrument.Quotes.build(quote_params)
+    ActiveRecord::Base.transaction do
+      ticker = params[:Ticker]
+      instrument = Instrument.find_by_Ticker(ticker)
+      if instrument.nil?
+        instrument = Instrument.new(Ticker: ticker)
+        unless instrument.save
+          render json: { error: "Unprocessable entity" }, status: 422
+        end
+      end
+      instrument.Quotes.build(quote_params)
+    end
   end
 
   private
-
   def quote_params
     params.permit(:Timestamp, :Price)
   end
