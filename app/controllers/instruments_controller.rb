@@ -36,6 +36,7 @@ class InstrumentsController < ApplicationController
   end
 
   def create
+    #not going to break in case of 2 instances with the same ticker
     instrument = Instrument.new(instrument_params)
     if instrument.save
       render json: instrument
@@ -45,6 +46,7 @@ class InstrumentsController < ApplicationController
   end
 
   def update
+    #not going to break in case of 2 instances
     instrument = Instrument.find(params[:id])
 
     if instrument.update(instrument_params)
