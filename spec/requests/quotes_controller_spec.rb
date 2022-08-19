@@ -286,5 +286,52 @@ RSpec.describe "/quotes", type: :request do
         expect(Quote.count).to eq(1)
       }
     end
+
+    it "creates 501 quotes at once" do
+      def build_quote
+        ticker = "oneto"
+        instrument = Instrument.find_by_Ticker(ticker)
+        if instrument.nil?
+          instrument = Instrument.new(Ticker: ticker)
+          instrument.save!
+        end
+        instrument.Quotes.build(Timestamp: "2022-07-28 18:18:29.294", Price: "100.3")
+      end
+
+      blocker = true
+      for i in 0..500 do
+        Thread.new {
+          true while blocker
+          ActiveRecord::Base.transaction do
+            quote = build_quote
+
+            quote.save!
+          end
+        }
+      end
+      blocker = false
+      sleep(5)
+      expect(Instrument.count).to eq(4)
+      expect(Quote.count).to eq(501)
+    end
+
+    it "uses post to create 501 quotes at once" do
+      blocker = true
+      for i in 0..500 do
+        Thread.new {
+          true while blocker
+          post '/quotes', params:
+          {
+            "Timestamp": "2022-07-28 18:18:29.294",
+            "Price": "100.5",
+            "Ticker": "dsfgs"
+          }
+        }
+      end
+      blocker = false
+      sleep(5)
+      expect(Instrument.count).to eq(4)
+      expect(Quote.count).to eq(501)
+    end
   end
 end
