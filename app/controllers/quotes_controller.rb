@@ -29,12 +29,15 @@ class QuotesController < ApplicationController
   end
 
   def create
-    quote = build_quote
+    ActiveRecord::Base.transaction do
+      #TODO double transactions?
+      quote = build_quote
 
-    if quote.save
-      render json: quote_presenter(quote)
-    else
-      render json: {error: "Unprocessable entity"}, status: 422
+      if quote.save
+        render json: quote_presenter(quote)
+      else
+        render json: {error: "Unprocessable entity"}, status: 422
+      end
     end
   end
 
