@@ -2,6 +2,19 @@ class QuotesController < ApplicationController
   rescue_from ActiveRecord::RecordNotFound do |exception|
     render json: { error: exception }, status: 404
   end
+
+  private def build_quote
+    ticker = params[:Ticker]
+    instrument = Instrument.find_by_Ticker(ticker)
+    if instrument.nil?
+      instrument = Instrument.new(Ticker: ticker)
+      unless instrument.save
+        render json: { error: "Unprocessable entity" }, status: 422
+      end
+    end
+    instrument.Quotes.build(quote_params)
+  end
+
   #TODO error handling
   def index
 
@@ -30,7 +43,7 @@ class QuotesController < ApplicationController
 
   def create
     ActiveRecord::Base.transaction do
-      #TODO double transactions?
+      #TODO will build_quote elements be considered as part of the transaction?
       quote = build_quote
 
       if quote.save
@@ -38,21 +51,6 @@ class QuotesController < ApplicationController
       else
         render json: {error: "Unprocessable entity"}, status: 422
       end
-    end
-  end
-
-  private
-  def build_quote
-    ActiveRecord::Base.transaction do
-      ticker = params[:Ticker]
-      instrument = Instrument.find_by_Ticker(ticker)
-      if instrument.nil?
-        instrument = Instrument.new(Ticker: ticker)
-        unless instrument.save
-          render json: { error: "Unprocessable entity" }, status: 422
-        end
-      end
-      instrument.Quotes.build(quote_params)
     end
   end
 
