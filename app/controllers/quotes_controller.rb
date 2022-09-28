@@ -12,7 +12,7 @@ class QuotesController < ApplicationController
         render json: { error: "Unprocessable entity" }, status: 422
       end
     end
-    instrument.Quotes.build(quote_params)
+    instrument.quotes.build(quote_params)
   end
 
   #TODO error handling
@@ -42,8 +42,8 @@ class QuotesController < ApplicationController
   end
 
   def create
-    ActiveRecord::Base.transaction do
-      #TODO will build_quote elements be considered as part of the transaction?
+    # ActiveRecord::Base.logger = Logger.new(STDOUT)
+    ActiveRecord::Base.transaction(isolation: :repeatable_read) do
       quote = build_quote
 
       if quote.save
@@ -60,7 +60,7 @@ class QuotesController < ApplicationController
   end
 
   def quote_presenter(quote)
-    quote.as_json(only: [:id, :Timestamp, :Price, :created_at, :updated_at ],include: :Instrument)
+    quote.as_json(only: [:id, :Timestamp, :Price, :created_at, :updated_at ],include: :instrument)
   end
 end
 

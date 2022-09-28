@@ -1,13 +1,36 @@
 require 'rails_helper'
+require 'database_cleaner/active_record'
+
+# def without_transactional_fixtures(&block)
+#   self.use_transactional_fixtures = false
+#   # self.use_transactional_tests = false
+#
+#   before(:all) do
+#     DatabaseCleaner.strategy = :truncation
+#   end
+#
+#   yield
+#
+#   after(:all) do
+#     DatabaseCleaner.strategy = :transaction
+#   end
+# end
 
 RSpec.describe "/quotes", type: :request do
+  self.use_transactional_tests = false
+
   before do
+    DatabaseCleaner.strategy = :transaction
     instrument1 = FactoryBot.build(:instrument, Ticker: "abc", CompanyName: "ABC")
     instrument2 = FactoryBot.build(:instrument, Ticker: "def", CompanyName: "DEF")
     instrument3 = FactoryBot.build(:instrument, Ticker: "ghi", CompanyName: "GHI")
     instrument1.save
     instrument2.save
     instrument3.save
+  end
+
+  after do
+    DatabaseCleaner.clean
   end
 
   describe "GET index" do
@@ -23,7 +46,6 @@ RSpec.describe "/quotes", type: :request do
 
       quote1 = FactoryBot.build(:quote, Instrument_id: Instrument.first.id)
       quote1.save
-
 
       get "/quotes"
       expect(JSON.parse(response.body)[0]["Instrument"]["Ticker"]).to eq("abc")
@@ -138,6 +160,7 @@ RSpec.describe "/quotes", type: :request do
   describe "create" do
 
     it "posts a quote" do
+      DatabaseCleaner.strategy = :truncation
       post '/quotes', params:
         {
           Ticker: "abc",
@@ -150,6 +173,7 @@ RSpec.describe "/quotes", type: :request do
     end
 
     it "returns Error 422 due to bad parameters" do
+      DatabaseCleaner.strategy = :truncation
       post '/quotes', params:
         {
           Ticker: "abc",
@@ -160,6 +184,7 @@ RSpec.describe "/quotes", type: :request do
     end
 
     it "does a thing and creates a new instrument along side it" do
+      DatabaseCleaner.strategy = :truncation
       post '/quotes', params:
         {
           Ticker: "dogma",
@@ -172,13 +197,14 @@ RSpec.describe "/quotes", type: :request do
     end
 
     it "returns Error 422 due to missing parameters" do
+      DatabaseCleaner.strategy = :truncation
       post '/quotes', params:
         {
           Ticker: "abc",
           Price: "100.2",
         }
 
-        expect(response.status).to eq(422)
+      expect(response.status).to eq(422)
     end
 
     it "creates 2 quotes with the same non-existing ticker at the same time (old)" do
@@ -191,15 +217,27 @@ RSpec.describe "/quotes", type: :request do
       instrument2 = Instrument.new(Ticker: ticker)
       expect(instrument1.save).to eq(true)
       instrument1 = Instrument.find_by_Ticker(ticker)
-      expect{instrument2.save!}.to raise_error
+      expect { instrument2.save! }.to raise_error
       # ActiveRecord::RecordNotUnique
       # SQLite3::ConstraintException
       # Couldn't get the specific name but whatever, it works
-      instrument1.Quotes.build(Timestamp: "2022-07-28 18:18:29.294", Price: "100.2").save
+      instrument1.quotes.build(Timestamp: "2022-07-28 18:18:29.294", Price: "100.2").save
       expect(Quote.count).to eq(1)
     end
 
+    it 'tests transaction' do
+      DatabaseCleaner.strategy = :truncation
+      ActiveRecord::Base.transaction() do
+        instrument1 = FactoryBot.build(:instrument, Ticker: "a", CompanyName: "DEF")
+        instrument2 = FactoryBot.build(:instrument, Ticker: "b", CompanyName: "GHI")
+        instrument1.save!
+        instrument2.save!
+        throw 'expect rollback'
+      end
+    end
+
     it "creates 2 quotes with the same non-existing ticker at the same time (transactions included)" do
+      DatabaseCleaner.strategy = :truncation
       # This shows how the code would work in case 2 requests with the same non-existing ticker would happen at the same time with the code wrapped in a transaction
       # This contains a replica of the quotes_controller code with some minor adjustments included in the 2 threads
       # We start the first thread and instantly add a blocker (blocker attribute)
@@ -210,47 +248,81 @@ RSpec.describe "/quotes", type: :request do
       # After the 2nd thread's transaction has ended, we wait for 2 seconds and check if the first transaction has made any progress
       # thread_1_transaction_started is now true
       # we double check that there are 2 quotes in the database and that they reference the same instrument
-      blocker = true
+
+      db1 = false
+      db2 = false
+      blocker = Mutex.new
       thread_1_transaction_started = false
+      ActiveRecord::Base.connection.disconnect!
 
-      Thread.new {
-        true while blocker
-        ActiveRecord::Base.transaction do
-          ticker = "new"
-          instrument = Instrument.find_by_Ticker(ticker)
-          thread_1_transaction_started = true
-          if instrument.nil?
-            instrument = Instrument.new(Ticker: ticker)
-            instrument.save!
+      t2 = Thread.new {
+        print "T2 starts \n"
+        ActiveRecord::Base.connection_pool.with_connection do
+          print "T2 con established \n"
+
+          ActiveRecord::Base.transaction(isolation: :repeatable_read) do
+            print "T2 starting trans \n"
+            blocker.lock
+            # can't change transaction to isolation: :serializable
+            # cannot set transaction isolation in a nested transaction (ActiveRecord::TransactionIsolationError)
+            ticker = "new"
+            print "t2 find \n"
+            instrument = Instrument.find_by_Ticker(ticker)
+            print "t2 after find \n"
+            thread_1_transaction_started = true
+            if instrument.nil?
+              instrument = Instrument.new(Ticker: ticker)
+              instrument.save!
+            end
+            instrument.quotes.build(Timestamp: "2022-07-28 18:18:29.294", Price: "100.2").save
+            print "tran2 finished \n"
           end
-          instrument.Quotes.build(Timestamp: "2022-07-28 18:18:29.294", Price: "100.2").save
         end
+        print "T2 finished \n"
       }
 
-      Thread.new {
-        ActiveRecord::Base.transaction do
-          ticker = "new"
-          instrument = Instrument.find_by_Ticker(ticker)
-          blocker = false
-          if instrument.nil?
-            instrument = Instrument.new(Ticker: ticker)
-            instrument.save!
-            sleep(2)
+      t1 = Thread.new {
+        blocker.lock
+        print "T1 starts \n"
+        ActiveRecord::Base.connection_pool.with_connection do
+          ActiveRecord::Base.transaction(isolation: :repeatable_read) do
+            # can't change transaction to isolation: :serializable
+            # cannot set transaction isolation in a nested transaction (ActiveRecord::TransactionIsolationError)
+            ticker = "new"
+            print "T1 before find \n"
+            instrument = Instrument.find_by_Ticker(ticker)
+            blocker.unlock
+            if instrument.nil?
+              instrument = Instrument.new(Ticker: ticker)
+              print "t1 before save\n"
+              sleep(3)
+              instrument.save!
+              print "t1 after save\n"
+              sleep(2)
+              expect(thread_1_transaction_started).to eq(false)
+            end
+            expect(Instrument.find_by_Ticker(ticker)).not_to eq(nil)
+            instrument.quotes.build(Timestamp: "2022-07-28 18:18:29.294", Price: "100.3").save
+            expect(Quote.count).to eq(1)
             expect(thread_1_transaction_started).to eq(false)
+            print "tran1 finished\n"
           end
-          expect(Instrument.find_by_Ticker(ticker)).not_to eq(nil)
-          instrument.Quotes.build(Timestamp: "2022-07-28 18:18:29.294", Price: "100.3").save
-          expect(Quote.count).to eq(1)
-          expect(thread_1_transaction_started).to eq(false)
+          sleep(2)
+          print "1 \n"
+          expect(thread_1_transaction_started).to eq(true)
+          print "2 \n"
+          expect(Quote.count).to eq(2)
+          expect(Quote.first.instrument_id).to eq(Quote.second.instrument_id)
+          print "T1 finished \n"
         end
-        sleep(2)
-        expect(thread_1_transaction_started).to eq(true)
-        expect(Quote.count).to eq(2)
-        expect(Quote.first.Instrument_id).to eq(Quote.second.Instrument_id)
       }
+      # sleep(30)
+      t1.join
+      t2.join
     end
 
     it "creates 2 quotes with the same non-existing ticker at the same time (transactions excluded)" do
+      DatabaseCleaner.strategy = :truncation
       # This shows how the code would work in case 2 requests with the same non-existing ticker would happen at the same time without the transaction
       # Similar concept to the first scenario, except it shows that if both requests assert that there's no instrument with the given ticker and try to create one at the same time
       # then one of the two will be met with an error because the ticker's Unique constraint failed
@@ -266,7 +338,7 @@ RSpec.describe "/quotes", type: :request do
         if instrument.nil?
           true while blocker2
           instrument = Instrument.new(Ticker: ticker)
-          expect{instrument.save!}.to raise_error
+          expect { instrument.save! }.to raise_error
         end
       }
 
@@ -282,12 +354,16 @@ RSpec.describe "/quotes", type: :request do
           expect(thread_1_started).to eq(false)
         end
         expect(Instrument.find_by_Ticker(ticker)).not_to eq(nil)
-        instrument.Quotes.build(Timestamp: "2022-07-28 18:18:29.294", Price: "100.3").save
+        instrument.quotes.build(Timestamp: "2022-07-28 18:18:29.294", Price: "100.3").save
         expect(Quote.count).to eq(1)
       }
     end
 
     it "creates 501 quotes at once" do
+      n = 10
+      DatabaseCleaner.strategy = :truncation
+      ActiveRecord::Base.connection.disconnect!
+
       def build_quote
         ticker = "oneto"
         instrument = Instrument.find_by_Ticker(ticker)
@@ -295,14 +371,15 @@ RSpec.describe "/quotes", type: :request do
           instrument = Instrument.new(Ticker: ticker)
           instrument.save!
         end
-        instrument.Quotes.build(Timestamp: "2022-07-28 18:18:29.294", Price: "100.3")
+        instrument.quotes.build(Timestamp: "2022-07-28 18:18:29.294", Price: "100.3")
       end
 
       blocker = true
-      for i in 0..500 do
+      for i in 0...n do
         Thread.new {
+          ActiveRecord::Base.establish_connection
           true while blocker
-          ActiveRecord::Base.transaction do
+          ActiveRecord::Base.transaction(isolation: :repeatable_read) do
             quote = build_quote
 
             quote.save!
@@ -311,27 +388,32 @@ RSpec.describe "/quotes", type: :request do
       end
       blocker = false
       sleep(5)
+      ActiveRecord::Base.establish_connection
       expect(Instrument.count).to eq(4)
-      expect(Quote.count).to eq(501)
+      expect(Quote.count).to eq(n)
     end
 
     it "uses post to create 501 quotes at once" do
+      DatabaseCleaner.strategy = :truncation
+      ActiveRecord::Base.connection.disconnect!
       blocker = true
-      for i in 0..500 do
+      for i in 0...500 do
         Thread.new {
+          ActiveRecord::Base.establish_connection
           true while blocker
           post '/quotes', params:
-          {
-            "Timestamp": "2022-07-28 18:18:29.294",
-            "Price": "100.5",
-            "Ticker": "dsfgs"
-          }
+            {
+              "Timestamp": "2022-07-28 18:18:29.294",
+              "Price": "100.5",
+              "Ticker": "dsfgs"
+            }
         }
       end
       blocker = false
       sleep(5)
+      ActiveRecord::Base.establish_connection
       expect(Instrument.count).to eq(4)
-      expect(Quote.count).to eq(501)
+      expect(Quote.count).to eq(500)
     end
   end
 end

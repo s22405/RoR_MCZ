@@ -1,6 +1,12 @@
 require 'rails_helper'
 
 RSpec.describe "/instruments", type: :request do
+  before do
+    DatabaseCleaner.strategy = :transaction
+  end
+  after do
+    DatabaseCleaner.clean
+  end
   describe "GET index" do
     it "returns no instruments on empty database" do
       get "/instruments"

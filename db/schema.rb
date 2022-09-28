@@ -11,23 +11,26 @@
 # It's strongly recommended that you check this file into your version control system.
 
 ActiveRecord::Schema[7.0].define(version: 2022_08_03_123736) do
+  # These are extensions that must be enabled in order to support this database
+  enable_extension "plpgsql"
+
   create_table "instruments", force: :cascade do |t|
     t.string "Ticker"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "CompanyName"
     t.datetime "TimeCreated", precision: nil
-    t.index ["Ticker"], name: "index_instruments_on_ticker", unique: true
+    t.index ["Ticker"], name: "index_instruments_on_Ticker", unique: true
   end
 
   create_table "quotes", force: :cascade do |t|
     t.datetime "Timestamp", precision: nil
     t.decimal "Price"
-    t.integer "Instrument_id", null: false
+    t.bigint "instrument_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["Instrument_id"], name: "index_quotes_on_Instrument_id"
+    t.index ["instrument_id"], name: "index_quotes_on_instrument_id"
   end
 
-  add_foreign_key "quotes", "Instruments"
+  add_foreign_key "quotes", "instruments"
 end
