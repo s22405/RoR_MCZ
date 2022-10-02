@@ -40,6 +40,8 @@ gem "pg", "~>1.4.3"
 
 # gem 'pg', '~> 0.18.4'
 
+gem "win32-process"
+
 
 
 group :development, :test do
