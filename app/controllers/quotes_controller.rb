@@ -21,10 +21,10 @@ class QuotesController < ApplicationController
     quotes = Quote.all
 
     if params[:ticker]
-      quotes = quotes.where(Instrument: Instrument.where(Ticker: params[:ticker]))
+      quotes = quotes.where(instrument: Instrument.where(Ticker: params[:ticker]))
     end
     if params[:companyname]
-      quotes = quotes.where(Instrument: Instrument.where(CompanyName: params[:companyname]))
+      quotes = quotes.where(instrument: Instrument.where(CompanyName: params[:companyname]))
     end
     if params[:offset]
       quotes = quotes.offset(params[:offset])
@@ -60,8 +60,6 @@ class QuotesController < ApplicationController
   end
 
   def quote_presenter(quote)
-    quote.as_json(only: [:id, :Timestamp, :Price, :created_at, :updated_at ],include: :instrument)
+    quote.as_json(only: [:id, :Timestamp, :Price, :created_at, :updated_at ], include: :instrument)
   end
 end
-
-

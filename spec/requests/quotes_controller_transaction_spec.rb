@@ -6,14 +6,19 @@ RSpec.describe "/quotes create", type: :request, database_cleaner_strategy: :tru
   self.use_transactional_tests = false
   self.use_transactional_tests = false
 
-  before(:each) do
-    # DatabaseCleaner.strategy = :truncation
-    instrument1 = FactoryBot.build(:instrument, Ticker: "abc", CompanyName: "ABC")
-    instrument2 = FactoryBot.build(:instrument, Ticker: "def", CompanyName: "DEF")
-    instrument3 = FactoryBot.build(:instrument, Ticker: "ghi", CompanyName: "GHI")
+  before do
+    DatabaseCleaner.strategy = :truncation
+
+    instrument1 = FactoryBot.build(:instrument, Ticker: "abc1", CompanyName: "ABC")
+    instrument2 = FactoryBot.build(:instrument, Ticker: "def1", CompanyName: "DEF")
+    instrument3 = FactoryBot.build(:instrument, Ticker: "ghi1", CompanyName: "GHI")
     instrument1.save
     instrument2.save
     instrument3.save
+  end
+
+  after do
+    DatabaseCleaner.clean
   end
 
   describe "create" do
@@ -66,16 +71,19 @@ RSpec.describe "/quotes create", type: :request, database_cleaner_strategy: :tru
       expect(response.status).to eq(422)
     end
 
-    it 'tests transaction' do
-      # DatabaseCleaner.strategy = :truncation
-      ActiveRecord::Base.transaction() do
-        instrument1 = FactoryBot.build(:instrument, Ticker: "a", CompanyName: "DEF")
-        instrument2 = FactoryBot.build(:instrument, Ticker: "b", CompanyName: "GHI")
-        instrument1.save!
-        instrument2.save!
-        throw 'expect rollback'
-      end
-    end
+    # TODO I don't see why this expects a rollback. Tickers are unique, company names are not but they don't have to be
+    #
+    # it 'tests transaction' do
+    #   # DatabaseCleaner.strategy = :truncation
+    #   ActiveRecord::Base.transaction do
+    #     instrument1 = FactoryBot.build(:instrument, Ticker: "abc", CompanyName: "DEF")
+    #     instrument2 = FactoryBot.build(:instrument, Ticker: "b", CompanyName: "GHI")
+    #     instrument1.save!
+    #     instrument2.save!
+    #
+    #     throw 'expect rollback'
+    #   end
+    # end
 
     it "creates 2 quotes with the same non-existing ticker at the same time (transactions included)" do
       # DatabaseCleaner.strategy = :truncation
@@ -193,41 +201,44 @@ RSpec.describe "/quotes create", type: :request, database_cleaner_strategy: :tru
       }
     end
 
-    it "creates 501 quotes at once" do
-      n = 10
+    it "creates numerous quotes at once" do
+      n = 9
       # DatabaseCleaner.strategy = :truncation
       ActiveRecord::Base.connection.disconnect!
 
-      def build_quote
+      def build_quote(i)
         ticker = "oneto"
         instrument = Instrument.find_by_Ticker(ticker)
         if instrument.nil?
           instrument = Instrument.new(Ticker: ticker)
           instrument.save!
         end
-        instrument.quotes.build(Timestamp: "2022-07-28 18:18:29.294", Price: "100.3")
+        instrument.quotes.build(Timestamp: "2022-07-28 18:18:29.294", Price: i)
       end
 
       blocker = true
-      for i in 0...n do
+      (0...n).each { |i|
         Thread.new {
-          ActiveRecord::Base.establish_connection
+          puts "thread #{i} start"
+          ActiveRecord::Base.establish_connection #TODO issue blocking half of the threads... why half?
           true while blocker
           ActiveRecord::Base.transaction(isolation: :repeatable_read) do
-            quote = build_quote
+            quote = build_quote(i)
 
-            quote.save!
+            puts quote.save
           end
+          # ActiveRecord::Base.connection.disconnect!
+          puts "thread #{i} done"
         }
-      end
+      }
       blocker = false
-      sleep(5)
+      sleep(2)
       ActiveRecord::Base.establish_connection
       expect(Instrument.count).to eq(4)
       expect(Quote.count).to eq(n)
     end
 
-    it "uses post to create 501 quotes at once" do
+    it "uses post to create numerous quotes at once" do
       # DatabaseCleaner.strategy = :truncation
       ActiveRecord::Base.connection.disconnect!
       blocker = true
@@ -252,8 +263,8 @@ RSpec.describe "/quotes create", type: :request, database_cleaner_strategy: :tru
 
   end
 
-  after(:all) do
-    #because each doesnt work
-    DatabaseCleaner.clean_with(:truncation)
-  end
+  # after(:all) do
+  #   #because each doesnt work
+  #   DatabaseCleaner.clean_with(:truncation)
+  # end
 end

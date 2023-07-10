@@ -2,7 +2,8 @@ class InstrumentsController < ApplicationController
   rescue_from ActiveRecord::RecordNotFound do |exception|
     render json: { error: exception }, status: 404
   end
-  rescue_from SQLite3::ConstraintException do |exception|
+
+  rescue_from ActiveRecord::RecordNotUnique do |exception|
     render json: { error: "There's already an instrument with the given ticker" }, status: 422
     # TODO double check the status code
     # potential candidates
